@@ -57,6 +57,7 @@ export default function SensorsScreen() {
   const [tab, setTab] = useState<SensorTab>('accel');
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     Accelerometer.setUpdateInterval(100);
     Gyroscope.setUpdateInterval(100);
     const a = Accelerometer.addListener(setAccel);
@@ -69,6 +70,13 @@ export default function SensorsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {Platform.OS === 'web' && (
+        <View style={styles.webBanner}>
+          <Text style={styles.webBannerText}>
+            Accelerometer &amp; Gyroscope are not available on web — use the Expo Go app on a physical device.
+          </Text>
+        </View>
+      )}
       <Text style={styles.intro}>
         {tab === 'accel'
           ? 'Accelerometer — m/s² on 3 axes. At rest, Z ≈ 1 g (gravity pulling down).'
@@ -125,4 +133,6 @@ const styles = StyleSheet.create({
   hapticBtn: { marginTop: 16, backgroundColor: '#6A1B9A' },
   codeBox: { backgroundColor: '#263238', borderRadius: 8, padding: 14, marginTop: 16 },
   code: { color: '#80CBC4', fontFamily: 'monospace', fontSize: 12, lineHeight: 18 },
+  webBanner: { backgroundColor: '#FFF3E0', borderRadius: 8, padding: 12, marginBottom: 12 },
+  webBannerText: { color: '#E65100', fontSize: 13, lineHeight: 18 },
 });

@@ -10,6 +10,8 @@ export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [capturing, setCapturing] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   // Platform.select demonstrates platform detection (required capability)
@@ -21,6 +23,7 @@ export default function CameraScreen() {
 
   async function capture() {
     if (!cameraRef.current || capturing) return;
+    setCaptureError(null);
     setCapturing(true);
     try {
       const pic = await cameraRef.current.takePictureAsync({ quality: 0.7 });
@@ -29,6 +32,12 @@ export default function CameraScreen() {
           { uri: pic.uri, width: pic.width, height: pic.height, capturedAt: Date.now() },
           ...prev,
         ]);
+      }
+    } catch (e: any) {
+      if (e?.message?.includes('enough camera data')) {
+        setCaptureError('Camera is still warming up — try again in a moment.');
+      } else {
+        setCaptureError(e?.message ?? 'Capture failed.');
       }
     } finally {
       setCapturing(false);
@@ -55,7 +64,7 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+      <CameraView ref={cameraRef} style={styles.camera} facing={facing} onCameraReady={() => setCameraReady(true)}>
         <View style={styles.overlay}>
           <Text style={styles.photoCount}>
             {photos.length} photo{photos.length !== 1 ? 's' : ''} captured
@@ -71,13 +80,19 @@ export default function CameraScreen() {
           style={styles.flipBtn}
         />
         <HapticButton
-          label={capturing ? 'Capturing…' : captureLabel}
+          label={!cameraReady ? 'Camera loading…' : capturing ? 'Capturing…' : captureLabel}
           onPress={capture}
           hapticStyle="heavy"
-          disabled={capturing}
+          disabled={capturing || !cameraReady}
           style={styles.captureBtn}
         />
       </View>
+
+      {captureError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{captureError}</Text>
+        </View>
+      )}
 
       <View style={styles.info}>
         <Text style={styles.infoText}>Platform: {Platform.OS}</Text>
@@ -119,6 +134,8 @@ const styles = StyleSheet.create({
   flipBtn: { flex: 1, backgroundColor: '#37474F' },
   captureBtn: { flex: 2, backgroundColor: '#C62828' },
   permBtn: { width: 200 },
+  errorBanner: { backgroundColor: '#B71C1C', padding: 10, alignItems: 'center' },
+  errorText: { color: '#fff', fontSize: 13 },
   info: {
     backgroundColor: '#1A1A1A',
     padding: 12,
